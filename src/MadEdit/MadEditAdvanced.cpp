@@ -4284,7 +4284,7 @@ bool MadEdit::NormalFilePosForward(wxFileOffset pos, wxFileOffset& newpos, int& 
 	return true;
 }
 
-bool MadEdit::LoadPartial(wxFileOffset pos)
+bool MadEdit::LoadPartial(wxFileOffset centraPos)
 {
 	wxASSERT(m_Lines);
 	if (m_LineEndPos.empty()) return false;
@@ -4297,35 +4297,35 @@ bool MadEdit::LoadPartial(wxFileOffset pos)
 
 	int fw_len = m_PartialBufferSize/2, bw_line = m_PartialBufferSize/2;
 
-	if (pos < 0)
+	if (centraPos < 0)
 	{
-		pos = 0;
+		centraPos = 0;
 		fw_len = 0;
 		bw_line = m_PartialBufferSize;
 	}
-	else if (pos >= m_LineEndPos[m_LineEndPos.size() - 1])
+	else if (centraPos >= m_LineEndPos[m_LineEndPos.size() - 1])
 	{
-		 pos = m_LineEndPos[m_LineEndPos.size() - 1];
+		 centraPos = m_LineEndPos[m_LineEndPos.size() - 1];
 		 fw_len = m_PartialBufferSize;
 		 bw_line = 0;
 	}
 	else
 	{
-		if (pos - fw_len < 0)
+		if (centraPos - fw_len < 0)
 		{
-			fw_len = pos;
+			fw_len = centraPos;
 			bw_line = m_PartialBufferSize - fw_len;
 		}
-		else if ((pos + bw_line) > m_LineEndPos[m_LineEndPos.size() - 1])
+		else if ((centraPos + bw_line) > m_LineEndPos[m_LineEndPos.size() - 1])
 		{
-			bw_line = m_LineEndPos[m_LineEndPos.size() - 1] - pos;
+			bw_line = m_LineEndPos[m_LineEndPos.size() - 1] - centraPos;
 			fw_len = m_PartialBufferSize - bw_line;
 		}
 	}
 
 	wxFileOffset oldCaretPos = m_PosOffsetBeg + GetCaretPosition();
-	if (!NormalFilePosBackward(pos - fw_len, m_PosOffsetBeg, m_LineidBeg) ||
-		!NormalFilePosForward(pos + bw_line, m_PosOffsetEnd, m_LineidEnd) ||
+	if (!NormalFilePosBackward(centraPos - fw_len, m_PosOffsetBeg, m_LineidBeg) ||
+		!NormalFilePosForward(centraPos + bw_line, m_PosOffsetEnd, m_LineidEnd) ||
 		!m_Lines->LoadPartial(m_PosOffsetBeg, m_PosOffsetEnd - m_PosOffsetBeg + 1)) return false;
 
 	m_PosCaretPos = oldCaretPos;
