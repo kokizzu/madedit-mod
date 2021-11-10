@@ -4284,6 +4284,22 @@ bool MadEdit::NormalFilePosForward(wxFileOffset pos, wxFileOffset& newpos, int& 
 	return true;
 }
 
+bool MadEdit::LoadPartialImp(wxFileOffset oldcaretPos)
+{
+	wxASSERT((m_PosOffsetEnd - m_PosOffsetBeg + 1) <= m_PartialBufferSize);
+	if (!m_Lines->LoadPartial(m_PosOffsetBeg, m_PosOffsetEnd - m_PosOffsetBeg + 1))
+		return false;
+
+	m_PosCaretPos = oldcaretPos;
+	m_ValidPos_iter = m_Lines->m_LineList.begin();
+	m_ValidPos_lineid = 0;
+	m_ValidPos_rowid = 0;
+	m_ValidPos_pos = 0;
+	m_CaretPos.Reset( m_ValidPos_iter );
+	m_LastCaretXPos = 0;
+	return true;
+}
+
 bool MadEdit::LoadPartial(wxFileOffset centraPos)
 {
 	wxASSERT(m_Lines);
@@ -4324,18 +4340,12 @@ bool MadEdit::LoadPartial(wxFileOffset centraPos)
 	}
 
 	wxFileOffset oldCaretPos = m_PosOffsetBeg + GetCaretPosition();
-	if (!NormalFilePosBackward(centraPos - fw_len, m_PosOffsetBeg, m_LineidBeg) ||
-		!NormalFilePosForward(centraPos + bw_line, m_PosOffsetEnd, m_LineidEnd) ||
-		!m_Lines->LoadPartial(m_PosOffsetBeg, m_PosOffsetEnd - m_PosOffsetBeg + 1)) return false;
+	bool ret = false;
+	if (NormalFilePosBackward(centraPos - fw_len, m_PosOffsetBeg, m_LineidBeg) &&
+		NormalFilePosForward(centraPos + bw_line, m_PosOffsetEnd, m_LineidEnd))
+		ret = LoadPartialImp(oldCaretPos);
 
-	m_PosCaretPos = oldCaretPos;
-	m_ValidPos_iter = m_Lines->m_LineList.begin();
-	m_ValidPos_lineid = 0;
-	m_ValidPos_rowid = 0;
-	m_ValidPos_pos = 0;
-	m_CaretPos.Reset( m_ValidPos_iter );
-	m_LastCaretXPos = 0;
-	return true;
+	return ret;
 }
 
 bool MadEdit::LoadPartial(int line)
@@ -4346,4 +4356,70 @@ bool MadEdit::LoadPartial(int line)
 	return LoadPartial(m_LineEndPos[line]);
 }
 
+bool MadEdit::LoadPartialFromPos(wxFileOffset startPos)
+{
+	wxASSERT(m_Lines);
+	if (m_LineEndPos.empty()) return false;
+	wxFileName fn(GetFileName());
+	if (MadDirExists(fn.GetPath(wxPATH_GET_VOLUME)) == 0)
+	{
+		wxLogError(wxString(_("The file does not exist:")) + wxT("\n\n") + GetFileName());
+		return false;
+	}
+
+	if (m_PosOffsetBeg + (GetFileSize()) == m_RealSize)
+		return false;
+
+	int fw_len = 0, bw_line = m_PartialBufferSize;
+	if (startPos < 0)
+	{
+		startPos = 0;
+	}
+
+	wxASSERT_MSG(startPos - m_PosOffsetBeg > GetFileSize(), wxT("Wrong start POS"));
+	if ((startPos + bw_line) >= m_LineEndPos[m_LineEndPos.size() - 1])
+	{
+		wxASSERT_MSG(m_LineEndPos[m_LineEndPos.size() - 1] > startPos, wxT("Wrong start POS"));
+		bw_line = m_LineEndPos[m_LineEndPos.size() - 1] - startPos;
+		fw_len = m_PartialBufferSize - bw_line;
+	}
+
+	wxFileOffset oldCaretPos = m_PosOffsetBeg + GetCaretPosition();
+	bool ret = false;
+	if (NormalFilePosForward(startPos - fw_len, m_PosOffsetBeg, m_LineidBeg) &&
+		NormalFilePosForward(startPos + bw_line, m_PosOffsetEnd, m_LineidEnd))
+		ret = LoadPartialImp(oldCaretPos);
+
+	return ret;
+}
+
+bool MadEdit::LoadPartialToPos(wxFileOffset endPos)
+{
+	wxASSERT(m_Lines);
+	if (m_LineEndPos.empty()) return false;
+	wxFileName fn(GetFileName());
+	if (MadDirExists(fn.GetPath(wxPATH_GET_VOLUME)) == 0)
+	{
+		wxLogError(wxString(_("The file does not exist:")) + wxT("\n\n") + GetFileName());
+		return false;
+	}
+
+	if (m_PosOffsetBeg + (GetFileSize()) == m_RealSize)
+		return false;
+
+	int fw_len = m_PartialBufferSize;
+	if (endPos < 0 || endPos > m_RealSize)
+	{
+		endPos = m_RealSize;
+	}
+
+	wxASSERT_MSG(endPos < m_PartialBufferSize, wxT("Wrong end POS"));
+	wxFileOffset oldCaretPos = m_PosOffsetBeg + GetCaretPosition();
+	bool ret = false;
+	if (NormalFilePosBackward(endPos - fw_len, m_PosOffsetBeg, m_LineidBeg) &&
+		NormalFilePosBackward(endPos, m_PosOffsetEnd, m_LineidEnd))
+		ret = LoadPartialImp(oldCaretPos);
+
+	return ret;
+}
 //----------

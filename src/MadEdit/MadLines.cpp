@@ -3411,6 +3411,7 @@ bool MadLines::LoadPartial( wxFileOffset startpos, wxFileOffset len )
 	m_Size = len;
 	wxByte* buf;
 
+	wxASSERT_MSG(len <= BUFFER_SIZE, wxT("LoadPartial: Len is too big"));
 	MadLineIterator iter = m_LineList.begin();
 	iter->m_Size = m_Size;
 	// set line's blocks

@@ -1211,8 +1211,11 @@ public: // Partial load functions
 	void SetPartialLoadMode(bool partial) { m_PartialLoadMode = partial; }
 	bool NormalFilePosBackward(wxFileOffset pos, wxFileOffset& newpos, int& line);
 	bool NormalFilePosForward(wxFileOffset pos, wxFileOffset& newpos, int& line);
-	bool LoadPartial(wxFileOffset pos);
+	bool LoadPartialImp(wxFileOffset oldcaretPos);
+	bool LoadPartial(wxFileOffset centraPos);
 	bool LoadPartial(int line);
+	bool LoadPartialFromPos(wxFileOffset startPos);
+	bool LoadPartialToPos(wxFileOffset endPos);
 	void ReloadForModeChange( MadEditMode mode );
 
 public: // printing functions
